@@ -1,0 +1,33 @@
+__pycache__/
+*.py[cod]
+*.part
+*.crdownload
+*.finddoi-cache.json
+.pytest_cache/
+.coverage
+.DS_Store
+
+# Default/custom download outputs. Bare directory names match at any depth.
+SCIDownload-out/
+papers/
+PDFs/
+SupportingInformation/
+run.log
+manifest.jsonl
+
+# Dedicated browser state / local credentials. Never commit these.
+browser-profile/
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Common Chromium profile files in case somebody copies a profile into the repo.
+Cookies
+Cookies-journal
+Login Data
+Login Data-journal
+Web Data
+Web Data-journal
