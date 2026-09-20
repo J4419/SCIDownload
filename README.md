@@ -12,7 +12,7 @@ SCIDownload 用本机 Chrome、Edge 或 Chromium 打开文章页，并把当前�
 **PeerJ**（`10.7717`）、**Nature Portfolio / Scientific Reports**（`10.1038`）、
 **MDPI**（`10.3390`）等出版商。
 清单里混着这些 DOI 也能一个命令跑完。v1.5.2 起，对没有专门规则的非 ScienceDirect 页面，
-程序还会尝试标准 `citation_pdf_url` 和页面中明确的 PDF 链接；v1.6.0 又增加了对浏览器原生 attachment 下载的捕获，因此像 MDPI 这类“手动点击会直接下载文件、不会在标签页打开 PDF”的页面也能被程序正确接管。只有专门规则与通用候选都失败后才记为 `unsupported_publisher`。详见 [使用说明.md](使用说明.md) 第 9 节。
+程序还会尝试标准 `citation_pdf_url` 和页面中明确的 PDF 链接；只有专门规则与通用候选都失败后才记为 `unsupported_publisher`。详见 [使用说明.md](使用说明.md) 第 9 节。
 
 项目只依赖 Python 标准库，支持 Windows、macOS 和 Linux。发布包内含标题反查 DOI、出口网络诊断和缓存清理工具。
 
