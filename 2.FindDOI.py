@@ -20,6 +20,7 @@
 import argparse
 import csv
 import difflib
+import importlib.util
 import json
 import math
 import os
@@ -59,25 +60,67 @@ DOI_RE = re.compile(r"10\.\d{4,9}/\S+")
 
 
 # ------------------------------------------------------------------ 读输入
+_SCIDOWNLOAD = None
+_SCIDOWNLOAD_TRIED = False
+
+
+def load_scidownload():
+    """按文件路径加载同目录的 SCIDownload 主模块，取它的零依赖 xlsx 解析函数。
+
+    主程序文件名是 `3.SCIDownload.py` —— 带数字前缀，不是合法的模块标识符，
+    所以 `from SCIDownload import ...` 永远失败（ModuleNotFoundError）。
+    必须用 importlib 按路径显式加载。若使用者把它改名成 `SCIDownload.py`，
+    两种名字都认。
+
+    Returns:
+        加载成功返回模块对象；找不到或加载失败返回 None。
+    """
+    global _SCIDOWNLOAD, _SCIDOWNLOAD_TRIED
+    if _SCIDOWNLOAD_TRIED:
+        return _SCIDOWNLOAD
+    _SCIDOWNLOAD_TRIED = True
+
+    for name in ("SCIDownload.py", "3.SCIDownload.py"):
+        cand = os.path.join(HERE, name)
+        if not os.path.isfile(cand):
+            continue
+        try:
+            spec = importlib.util.spec_from_file_location("SCIDownload", cand)
+            if spec is None or spec.loader is None:
+                continue
+            mod = importlib.util.module_from_spec(spec)
+            # 先登记再执行：模块内部若有自引用也能解析到同一个对象
+            sys.modules["SCIDownload"] = mod
+            spec.loader.exec_module(mod)
+            _SCIDOWNLOAD = mod
+            return mod
+        except Exception:
+            sys.modules.pop("SCIDownload", None)
+            continue
+    return None
+
+
 def read_table(path):
     """xlsx / csv / tsv / txt -> list[list[str]]"""
     ext = os.path.splitext(path)[1].lower()
 
     if ext in (".xlsx", ".xlsm"):
+        mod = load_scidownload()
+        if mod is not None and hasattr(mod, "read_xlsx_stdlib"):
+            return mod.read_xlsx_stdlib(path)
+        # 退路：主程序不在旁边（比如只拷了这一个文件），再试 openpyxl
         try:
-            from SCIDownload import read_xlsx_stdlib
-            return read_xlsx_stdlib(path)
-        except Exception:
-            try:
-                import openpyxl
-            except ImportError:
-                raise SystemExit(
-                    "读 .xlsx 需要同目录下的 SCIDownload.py（内置零依赖解析），"
-                    "或安装 openpyxl。也可以把清单另存为 .csv 再试。")
-            wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
-            ws = wb[wb.sheetnames[0]]
-            return [[("" if c is None else str(c)) for c in row]
-                    for row in ws.iter_rows(values_only=True)]
+            import openpyxl
+        except ImportError:
+            raise SystemExit(
+                "读 .xlsx 需要同目录下的 `3.SCIDownload.py`（内置零依赖解析），"
+                "或安装 openpyxl。\n"
+                f"  当前目录：{HERE}\n"
+                "  也可以把清单另存为 .csv 或 .txt 再试。")
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+        ws = wb[wb.sheetnames[0]]
+        return [[("" if c is None else str(c)) for c in row]
+                for row in ws.iter_rows(values_only=True)]
 
     lines = open(path, encoding="utf-8-sig", errors="replace").read().splitlines()
     first = lines[0] if lines else ""
